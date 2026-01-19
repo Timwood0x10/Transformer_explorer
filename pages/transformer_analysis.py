@@ -43,11 +43,12 @@ model = create_sample_transformer(d_model, n_heads, n_layers, vocab_size)
 profiler = TransformerProfiler(model, (batch_size, seq_len, d_model))
 
 # 主界面标签页
-tab1, tab2, tab3, tab4 = st.tabs([
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📊 参数分析",
     "⚡ 计算复杂度",
     "💾 显存分析",
-    "🔥 性能热点"
+    "🔥 性能热点",
+    "🌊 梯度流分析"
 ])
 
 # =================== TAB 1: 参数分析 ===================
@@ -600,3 +601,392 @@ with tab4:
     - 可训练的最大模型规模提升：**6-7x**
     ''')
 
+
+# =================== TAB 5: 梯度流分析 ===================
+with tab5:
+    st.header("🌊 梯度流分析")
+    
+    st.markdown("""
+    ### 🎯 核心问题
+    
+    **为什么深层网络难以训练？**
+    - 梯度消失：梯度在反向传播中逐层衰减，深层参数几乎不更新
+    - 梯度爆炸：梯度指数级增长，导致参数更新不稳定
+    
+    **残差连接如何解决？**
+    - 提供"梯度高速公路"：梯度可以直接跳过层传播
+    - 保持梯度稳定：防止梯度消失和爆炸
+    
+    本页面将**实时计算**并可视化梯度流，验证残差连接的效果。
+    """)
+    
+    st.divider()
+    
+    # 梯度追踪配置
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        st.subheader("⚙️ 实验配置")
+        
+        # 使用较小的配置进行梯度追踪
+        grad_n_layers = st.slider("层数（梯度追踪）", 2, 12, 6, key="grad_layers",
+                                  help="层数越多，梯度消失问题越明显")
+        grad_seq_len = st.slider("序列长度（梯度追踪）", 8, 64, 16, step=8, key="grad_seq",
+                                 help="序列长度影响计算时间")
+        
+        run_gradient_analysis = st.button("🚀 开始梯度分析", type="primary", key="run_grad")
+    
+    with col2:
+        st.subheader("📝 说明")
+        st.info("""
+        **实验内容**：
+        1. 创建真实的 Transformer 模型
+        2. 前向传播 + 反向传播
+        3. 实时计算每层的梯度
+        4. 对比有/无残差的梯度流
+        
+        ⚠️ 计算可能需要几秒钟
+        """)
+    
+    if run_gradient_analysis or 'gradient_journey_with' in st.session_state:
+        
+        if run_gradient_analysis:
+            with st.spinner("🔄 正在进行梯度分析..."):
+                
+                # 延迟导入 torch 和 gradient_tracker
+                import torch
+                from utils.gradient_tracker import GradientTrackingTransformer, GradientTracker
+                
+                # 创建梯度追踪模型（使用小词表）
+                grad_vocab_size = min(1000, vocab_size)
+                
+                # 创建模型
+                model_grad = GradientTrackingTransformer(
+                    d_model=d_model,
+                    n_heads=n_heads,
+                    n_layers=grad_n_layers,
+                    vocab_size=grad_vocab_size,
+                    use_residual=True
+                )
+                
+                tracker = GradientTracker(model_grad)
+                
+                # 生成随机数据
+                input_ids = torch.randint(0, grad_vocab_size, (2, grad_seq_len))
+                target_ids = torch.randint(0, grad_vocab_size, (2, grad_seq_len))
+                
+                # 对比实验：有残差 vs 无残差
+                journey_with, journey_without = tracker.compare_with_without_residual(
+                    input_ids, target_ids
+                )
+                
+                # 保存到 session state
+                st.session_state.gradient_journey_with = journey_with
+                st.session_state.gradient_journey_without = journey_without
+                st.session_state.grad_config = {
+                    'd_model': d_model,
+                    'n_heads': n_heads,
+                    'n_layers': grad_n_layers,
+                    'seq_len': grad_seq_len
+                }
+                
+                st.success("✅ 梯度分析完成！")
+        
+        # 获取结果
+        journey_with = st.session_state.gradient_journey_with
+        journey_without = st.session_state.gradient_journey_without
+        grad_config = st.session_state.grad_config
+        
+        st.divider()
+        
+        # ========== 整体对比 ==========
+        st.subheader("📊 有/无残差对比")
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric("有残差 - 健康度", 
+                     f"{journey_with.overall_health_score:.2f}",
+                     help="0-1，越高越健康")
+            st.metric("有残差 - 最大梯度", 
+                     f"{journey_with.max_grad_norm:.4f}")
+        
+        with col2:
+            st.metric("无残差 - 健康度", 
+                     f"{journey_without.overall_health_score:.2f}",
+                     delta=f"{journey_without.overall_health_score - journey_with.overall_health_score:.2f}",
+                     delta_color="inverse")
+            st.metric("无残差 - 最大梯度", 
+                     f"{journey_without.max_grad_norm:.4f}",
+                     delta=f"{journey_without.max_grad_norm - journey_with.max_grad_norm:.2f}",
+                     delta_color="inverse")
+        
+        with col3:
+            # 梯度问题诊断
+            if journey_without.has_vanishing_problem:
+                st.error("⚠️ 无残差模型出现梯度消失！")
+            if journey_without.has_explosion_problem:
+                st.error("💥 无残差模型出现梯度爆炸！")
+            
+            if not journey_with.has_vanishing_problem and not journey_with.has_explosion_problem:
+                st.success("✅ 有残差模型梯度健康")
+        
+        # ========== 逐层梯度对比 ==========
+        st.divider()
+        st.subheader("🔍 逐层梯度范数对比")
+        
+        # 准备数据
+        layer_indices = list(range(grad_config['n_layers']))
+        
+        # 提取每层的平均梯度
+        grad_with = []
+        grad_without = []
+        
+        for lg in journey_with.layer_gradients:
+            avg_grad = np.mean([lg.qkv_grad_norm, lg.out_proj_grad_norm, lg.ffn_grad_norm])
+            grad_with.append(avg_grad)
+        
+        for lg in journey_without.layer_gradients:
+            avg_grad = np.mean([lg.qkv_grad_norm, lg.out_proj_grad_norm, lg.ffn_grad_norm])
+            grad_without.append(avg_grad)
+        
+        # 绘制对比图
+        fig = go.Figure()
+        
+        fig.add_trace(go.Scatter(
+            x=layer_indices,
+            y=grad_with,
+            mode='lines+markers',
+            name='有残差',
+            line=dict(color='green', width=3),
+            marker=dict(size=10)
+        ))
+        
+        fig.add_trace(go.Scatter(
+            x=layer_indices,
+            y=grad_without,
+            mode='lines+markers',
+            name='无残差',
+            line=dict(color='red', width=3, dash='dash'),
+            marker=dict(size=10)
+        ))
+        
+        # 添加梯度消失/爆炸区域
+        fig.add_hline(y=1e-5, line_dash="dot", line_color="orange",
+                     annotation_text="梯度消失阈值 (1e-5)")
+        fig.add_hline(y=100, line_dash="dot", line_color="red",
+                     annotation_text="梯度爆炸阈值 (100)")
+        
+        fig.update_layout(
+            title="逐层平均梯度范数（实时计算）",
+            xaxis_title="层索引（0=最底层，接近输入）",
+            yaxis_title="平均梯度范数",
+            yaxis_type="log",
+            height=500,
+            hovermode='x unified'
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # 关键观察
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("### 💡 关键观察")
+            
+            # 计算梯度衰减率
+            if len(grad_with) >= 2:
+                decay_with = grad_with[-1] / grad_with[0] if grad_with[0] > 0 else 0
+                decay_without = grad_without[-1] / grad_without[0] if grad_without[0] > 0 else 0
+                
+                st.markdown(f"""
+                **梯度衰减比例**（最后层 / 第一层）:
+                - 有残差: {decay_with:.4f} ({decay_with*100:.1f}%)
+                - 无残差: {decay_without:.4f} ({decay_without*100:.1f}%)
+                
+                残差连接使梯度保持了 **{(decay_with/decay_without if decay_without > 0 else float('inf')):.1f}x** 的强度！
+                """)
+            
+            if journey_without.has_vanishing_problem and not journey_with.has_vanishing_problem:
+                st.success("""
+                ✅ **残差连接成功防止了梯度消失！**
+                
+                无残差模型的梯度在深层几乎为0，而有残差模型保持健康。
+                """)
+        
+        with col2:
+            st.markdown("### 📈 健康度评分")
+            
+            # 每层健康度
+            health_with = [lg.health_score for lg in journey_with.layer_gradients]
+            health_without = [lg.health_score for lg in journey_without.layer_gradients]
+            
+            fig = go.Figure()
+            
+            fig.add_trace(go.Bar(
+                x=layer_indices,
+                y=health_with,
+                name='有残差',
+                marker_color='lightgreen'
+            ))
+            
+            fig.add_trace(go.Bar(
+                x=layer_indices,
+                y=health_without,
+                name='无残差',
+                marker_color='lightcoral'
+            ))
+            
+            fig.update_layout(
+                title="每层梯度健康度",
+                xaxis_title="层索引",
+                yaxis_title="健康度 (0-1)",
+                barmode='group',
+                height=300
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+        
+        # ========== 详细的逐层分析 ==========
+        st.divider()
+        st.subheader("🔬 详细逐层分析")
+        
+        selected_layer = st.selectbox(
+            "选择要查看的层",
+            options=list(range(grad_config['n_layers'])),
+            format_func=lambda x: f"Layer {x}"
+        )
+        
+        lg_with = journey_with.layer_gradients[selected_layer]
+        lg_without = journey_without.layer_gradients[selected_layer]
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown(f"#### 有残差 - Layer {selected_layer}")
+            
+            components_with = {
+                'Q/K/V 投影': lg_with.qkv_grad_norm,
+                '输出投影': lg_with.out_proj_grad_norm,
+                'FFN': lg_with.ffn_grad_norm
+            }
+            
+            fig = go.Figure(data=[
+                go.Bar(
+                    x=list(components_with.keys()),
+                    y=list(components_with.values()),
+                    marker_color='lightblue',
+                    text=[f"{v:.4f}" for v in components_with.values()],
+                    textposition='auto'
+                )
+            ])
+            fig.update_layout(
+                title=f"Layer {selected_layer} 各组件梯度（有残差）",
+                yaxis_title="梯度范数",
+                height=300,
+                showlegend=False
+            )
+            st.plotly_chart(fig, use_container_width=True)
+            
+            st.metric("健康度", f"{lg_with.health_score:.2f}")
+            if lg_with.has_vanishing:
+                st.error("⚠️ 梯度消失")
+            if lg_with.has_explosion:
+                st.error("💥 梯度爆炸")
+        
+        with col2:
+            st.markdown(f"#### 无残差 - Layer {selected_layer}")
+            
+            components_without = {
+                'Q/K/V 投影': lg_without.qkv_grad_norm,
+                '输出投影': lg_without.out_proj_grad_norm,
+                'FFN': lg_without.ffn_grad_norm
+            }
+            
+            fig = go.Figure(data=[
+                go.Bar(
+                    x=list(components_without.keys()),
+                    y=list(components_without.values()),
+                    marker_color='lightcoral',
+                    text=[f"{v:.4f}" for v in components_without.values()],
+                    textposition='auto'
+                )
+            ])
+            fig.update_layout(
+                title=f"Layer {selected_layer} 各组件梯度（无残差）",
+                yaxis_title="梯度范数",
+                height=300,
+                showlegend=False
+            )
+            st.plotly_chart(fig, use_container_width=True)
+            
+            st.metric("健康度", f"{lg_without.health_score:.2f}",
+                     delta=f"{lg_without.health_score - lg_with.health_score:.2f}",
+                     delta_color="inverse")
+            if lg_without.has_vanishing:
+                st.error("⚠️ 梯度消失")
+            if lg_without.has_explosion:
+                st.error("💥 梯度爆炸")
+        
+        # ========== 理论解释 ==========
+        st.divider()
+        st.success("""
+        ### ✨ 为什么残差连接能防止梯度消失？
+        
+        **数学原理**:
+        
+        传统网络：`y = F(x)`
+        - 梯度: `dy/dx = F'(x)`
+        - 如果 F'(x) < 1，梯度会衰减
+        - 多层累积: `dy/dx = F'_n(x) * F'_{n-1}(x) * ... * F'_1(x)`
+        - 结果: 梯度指数级衰减 → 梯度消失
+        
+        残差网络：`y = x + F(x)`
+        - 梯度: `dy/dx = 1 + F'(x)`
+        - 即使 F'(x) 很小，`dy/dx ≈ 1`
+        - 多层累积: `dy/dx ≈ 1 + ΣF'_i(x)`
+        - 结果: 梯度保持稳定 → 无梯度消失
+        
+        **直观理解**:
+        
+        残差连接提供了一条"梯度高速公路"，让梯度可以直接从输出层流回输入层，
+        绕过中间层的复杂计算。这就像在山路上修了一条直达隧道！
+        
+        **实验验证**:
+        
+        从上面的图表可以看到：
+        1. ✅ 有残差：梯度在所有层保持相对稳定
+        2. ❌ 无残差：梯度逐层衰减，深层几乎为0
+        
+        这就是为什么现代深度网络（ResNet, Transformer）都使用残差连接！
+        """)
+    
+    else:
+        st.info("👆 点击 '开始梯度分析' 按钮查看实时计算的梯度流")
+        
+        st.markdown("""
+        ### 📚 预期结果
+        
+        当您运行梯度分析后，您将看到：
+        
+        1. **逐层梯度曲线**
+           - 有残差：梯度保持稳定
+           - 无残差：梯度逐层衰减
+        
+        2. **健康度评分**
+           - 有残差：高健康度（接近1.0）
+           - 无残差：低健康度（可能 < 0.5）
+        
+        3. **梯度消失检测**
+           - 无残差模型在深层可能出现梯度 < 1e-5
+           - 有残差模型保持健康
+        
+        4. **详细组件分析**
+           - 查看每层的 Q/K/V、输出投影、FFN 的梯度
+           - 对比有/无残差的差异
+        
+        **这是真实的计算结果，不是模拟！**
+        """)
+
+st.markdown("---")
+st.caption("💡 Transformer 架构分析工具 | 帮助你理解和优化模型")
