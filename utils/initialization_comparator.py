@@ -232,6 +232,7 @@ class InitializationComparator:
         # 选择几个代表性方法
         representative_methods = ['xavier_normal', 'kaiming_normal', 'random_normal']
         colors = ['blue', 'red', 'green']
+        rgba_colors = ['rgba(0,0,255,0.2)', 'rgba(255,0,0,0.2)', 'rgba(0,128,0,0.2)']
         
         for i, method in enumerate(representative_methods):
             if method in self.init_results:
@@ -267,7 +268,7 @@ class InitializationComparator:
                     x=layers + layers[::-1],
                     y=list(upper) + list(lower[::-1]),
                     fill='toself',
-                    fillcolor=f'rgba({colors[i]},0.2)',
+                    fillcolor=rgba_colors[i],
                     line=dict(color='rgba(255,255,255,0)'),
                     hoverinfo="skip",
                     showlegend=False,

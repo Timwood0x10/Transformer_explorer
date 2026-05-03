@@ -72,13 +72,9 @@ with st.sidebar:
     st.caption("© 2025 Transformer Explorer | Kimi AttnRes Analysis")
 
 # ============================================================
-# Create Tracker
+# Create Tracker (recreate on every param change for interactivity)
 # ============================================================
-@st.cache_resource
-def get_tracker(d_model: int, n_heads: int, n_layers: int):
-    return AttnResTracker(d_model=d_model, n_heads=n_heads, n_layers=n_layers)
-
-tracker = get_tracker(d_model, n_heads, n_layers)
+tracker = AttnResTracker(d_model=d_model, n_heads=n_heads, n_layers=n_layers)
 
 # ============================================================
 # Main Tabs

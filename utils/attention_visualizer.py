@@ -8,8 +8,6 @@ import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
 from typing import Dict, List, Tuple, Optional
-import string
-import random
 
 
 class AttentionVisualizer:

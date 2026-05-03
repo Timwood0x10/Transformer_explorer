@@ -243,8 +243,14 @@ class WeightAnalyzer:
         for i, name1 in enumerate(layer_names):
             correlations[name1] = {}
             for j, name2 in enumerate(layer_names):
-                if i <= j:  # 只计算上三角
-                    corr = np.corrcoef(layer_weights[name1], layer_weights[name2])[0, 1]
+                if i <= j:  # Only compute upper triangle
+                    w1, w2 = layer_weights[name1], layer_weights[name2]
+                    # corrcoef requires equal-length arrays; truncate to min length
+                    min_len = min(len(w1), len(w2))
+                    if min_len < 2:
+                        corr = 0.0
+                    else:
+                        corr = np.corrcoef(w1[:min_len], w2[:min_len])[0, 1]
                     correlations[name1][name2] = corr if not np.isnan(corr) else 0.0
                 else:
                     correlations[name1][name2] = correlations[name2][name1]
