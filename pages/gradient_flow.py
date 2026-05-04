@@ -13,6 +13,9 @@ import pandas as pd
 
 from utils.gradient_flow_visualizer import GradientFlowVisualizer
 
+
+
+
 st.set_page_config(page_title="梯度流分析", page_icon="🌊", layout="wide")
 
 st.title("🌊 梯度流分析")
@@ -20,10 +23,11 @@ st.markdown("### 可视化梯度在深度网络中的传播，对比不同激活
 
 # Sidebar configuration
 with st.sidebar:
+    st.divider()
     st.header("⚙️ 网络配置")
 
     input_size = st.slider("输入维度", 64, 1024, 512, step=64)
-    num_batches = st.slider("批次数", 1, 50, 10)
+    num_batches = st.slider("批次数量", 1, 50, 10)
 
     st.divider()
 
@@ -139,9 +143,9 @@ with tab2:
                 health_data.append({
                     "激活函数": act_name.upper(),
                     "健康层数": health_counts.get("健康", 0),
-                    "梯度消失": health_counts.get("梯度消失", 0),
-                    "梯度爆炸": health_counts.get("梯度爆炸", 0),
-                    "梯度不稳定": health_counts.get("梯度不稳定", 0)
+                    "梯度消失层数": health_counts.get("梯度消失", 0),
+                    "梯度爆炸层数": health_counts.get("梯度爆炸", 0),
+                    "不稳定层数": health_counts.get("不稳定", 0)
                 })
 
         if health_data:

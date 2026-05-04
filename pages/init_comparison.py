@@ -13,6 +13,9 @@ import pandas as pd
 
 from utils.initialization_comparator import InitializationComparator
 
+
+
+
 st.set_page_config(page_title="初始化对比", page_icon="⚖️", layout="wide")
 
 st.title("⚖️ 参数初始化方法对比")
@@ -20,10 +23,11 @@ st.markdown("### 对比不同初始化方法对权重分布、激活值演化和
 
 # Sidebar configuration
 with st.sidebar:
+    st.divider()
     st.header("⚙️ 网络配置")
 
     layer_sizes_str = st.text_input(
-        "层大小（逗号分隔）",
+        "网络层大小（逗号分隔）",
         value="512, 256, 128, 64, 10",
         help="定义网络各层的大小"
     )

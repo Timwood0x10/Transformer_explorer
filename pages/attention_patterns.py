@@ -13,6 +13,9 @@ import pandas as pd
 
 from utils.attention_visualizer import AttentionVisualizer
 
+
+
+
 st.set_page_config(page_title="注意力模式", page_icon="🔥", layout="wide")
 
 st.title("🔥 注意力模式可视化")
@@ -20,6 +23,7 @@ st.markdown("### 展示Transformer注意力机制的工作原理、多头注意�
 
 # Sidebar configuration
 with st.sidebar:
+    st.divider()
     st.header("⚙️ 模型配置")
 
     d_model = st.slider("模型维度 (d_model)", 128, 1024, 512, step=128)
@@ -141,7 +145,7 @@ with tab2:
     fig = px.pie(
         values=list(pattern_counts.values()),
         names=list(pattern_counts.keys()),
-        title='注意力模式类型分布'
+        title="模式类型分布"
     )
     st.plotly_chart(fig, use_container_width=True)
 
@@ -153,7 +157,7 @@ with tab3:
 
     col1, col2 = st.columns(2)
     with col1:
-        st.metric("多样性评分", f"{diversity['diversity_score']:.2f}",
+        st.metric("多样性分数", f"{diversity['diversity_score']:.2f}",
                  help="模式类型数 / 总头数，越高越好")
     with col2:
         st.metric("模式类型数", len(diversity['pattern_distribution']))
@@ -190,7 +194,7 @@ with tab3:
             hovertemplate='%{x} ↔ %{y}<br>相似度: %{z:.3f}<extra></extra>'
         ))
         fig.update_layout(
-            title='头间余弦相似度',
+            title="头间余弦相似度",
             height=500,
             xaxis_tickangle=-45
         )
@@ -201,13 +205,13 @@ with tab3:
         col1, col2 = st.columns(2)
 
         with col1:
-            st.subheader("最相似的头对")
+            st.subheader("最相似的注意力头对")
             sorted_sims = sorted(similarities.items(), key=lambda x: x[1], reverse=True)
             for pair, sim in sorted_sims[:5]:
                 st.write(f"- **{pair}**: {sim:.4f}")
 
         with col2:
-            st.subheader("最不相似的头对")
+            st.subheader("最不相似的注意力头对")
             for pair, sim in sorted_sims[-5:]:
                 st.write(f"- **{pair}**: {sim:.4f}")
     else:

@@ -13,6 +13,9 @@ import pandas as pd
 
 from utils.architecture_evolution import ArchitectureEvolutionTimeline
 
+
+
+
 st.set_page_config(page_title="架构演进", page_icon="📅", layout="wide")
 
 st.title("📅 序列建模架构演进")
@@ -49,11 +52,11 @@ with tab1:
     st.subheader("📋 架构详情")
 
     # Category filter
-    categories = ["全部", "RNN", "Attention", "Transformer", "Efficient", "SSM"]
+    categories = ["所有类别", "RNN", "Attention", "Transformer", "Efficient", "SSM"]
     selected_cat = st.selectbox("筛选类别", categories, key="timeline_cat")
 
     for arch in timeline.architectures:
-        if selected_cat != "全部" and arch["category"] != selected_cat:
+        if selected_cat != "所有类别" and arch["category"] != selected_cat:
             continue
 
         with st.expander(f"**{arch['name']}** ({arch['year']}) - {arch['category']}"):
@@ -62,9 +65,9 @@ with tab1:
             st.markdown(f"**关键特性**：{', '.join(arch['key_features'])}")
             col1, col2, col3 = st.columns(3)
             with col1:
-                st.metric("复杂度", arch["complexity"])
+                st.metric("计算复杂度", arch["complexity"])
             with col2:
-                st.metric("可并行", "是" if arch["parallelizable"] else "否")
+                st.metric("可并行化", "是" if arch["parallelizable"] else "否")
             with col3:
                 st.metric("长距离依赖", arch["long_range"])
 
@@ -85,8 +88,8 @@ with tab2:
             "架构": arch["name"],
             "年份": arch["year"],
             "类别": arch["category"],
-            "复杂度": arch["complexity"],
-            "可并行": "是" if arch["parallelizable"] else "否",
+            "计算复杂度": arch["complexity"],
+            "可并行化": "是" if arch["parallelizable"] else "否",
             "长距离依赖": arch["long_range"]
         })
 
@@ -149,7 +152,7 @@ with tab3:
     for arch in selected_archs:
         row = {"架构": arch}
         for i, feat in enumerate(key_features):
-            row[feat] = "有" if feature_presence[arch][i] else "无"
+            row[feat] = "✅" if feature_presence[arch][i] else "❌"
         feature_matrix_data.append(row)
 
     st.dataframe(pd.DataFrame(feature_matrix_data), height=250)
@@ -177,8 +180,8 @@ with tab4:
                 "架构": name,
                 "年份": arch["year"],
                 "类别": arch["category"],
-                "复杂度": arch["complexity"],
-                "可并行": "是" if arch["parallelizable"] else "否",
+                "计算复杂度": arch["complexity"],
+                "可并行化": "是" if arch["parallelizable"] else "否",
                 "长距离依赖": arch["long_range"],
                 "关键特性": ", ".join(arch["key_features"][:3])
             })

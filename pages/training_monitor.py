@@ -15,6 +15,7 @@ import pandas as pd
 
 from utils.training_monitor import TrainingMonitor, create_training_report
 
+
 st.set_page_config(page_title="训练监控", page_icon="📊", layout="wide")
 
 st.title("📊 训练动态监控")
@@ -22,16 +23,17 @@ st.markdown("### 实时监控训练过程中的关键指标、层级健康状况
 
 # Sidebar configuration
 with st.sidebar:
+    st.divider()
     st.header("⚙️ 模型配置")
 
     n_layers = st.slider("层数", 1, 12, 4)
     learning_rate = st.slider("学习率", 1e-5, 1e-2, 1e-3, format="%.5f")
-    window_size = st.slider("监控窗口大小", 10, 200, 50)
+    window_size = st.slider("监控窗口", 10, 200, 50)
 
     st.divider()
 
     st.header("🔧 训练配置")
-    n_steps = st.slider("模拟训练步数", 20, 200, 50)
+    n_steps = st.slider("模拟步数", 20, 200, 50)
     batch_size = st.slider("Batch Size", 4, 64, 16)
 
 
@@ -41,6 +43,8 @@ def create_model(_n_layers):
     """Create a simple model for monitoring"""
     try:
         from utils.base_models import BaseTransformer
+
+
         return BaseTransformer(d_model=256, n_heads=4, n_layers=_n_layers, vocab_size=1000)
     except (ImportError, Exception):
         # Fallback: simple sequential model
@@ -108,7 +112,7 @@ with tab1:
 
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.metric("最终损失", f"{losses[-1]:.4f}",
+            st.metric("最终 Loss", f"{losses[-1]:.4f}",
                      delta=f"{losses[-1] - losses[0]:.4f}")
         with col2:
             st.metric("平均梯度范数", f"{np.mean(grad_norms):.4f}")
@@ -125,7 +129,7 @@ with tab1:
             line=dict(color='red', width=2)
         ))
         fig.update_layout(
-            title='训练损失曲线',
+            title="训练 Loss 曲线",
             xaxis_title='Step',
             yaxis_title='Loss',
             height=400
@@ -136,13 +140,13 @@ with tab1:
         fig2 = go.Figure()
         fig2.add_trace(go.Scatter(
             x=steps, y=grad_norms,
-            mode='lines', name='梯度范数',
+            mode='lines', name="梯度范数",
             line=dict(color='blue', width=2)
         ))
         fig2.update_layout(
-            title='梯度范数变化',
+            title="梯度范数变化",
             xaxis_title='Step',
-            yaxis_title='梯度范数',
+            yaxis_title="梯度范数",
             height=350
         )
         st.plotly_chart(fig2, use_container_width=True)
@@ -178,8 +182,8 @@ with tab2:
                     x=steps, y=ratios, mode='lines', name=lname,
                 ))
             fig_trend.update_layout(
-                title='各层更新比例随训练步数变化',
-                xaxis_title='训练步数', yaxis_title='更新比例',
+                title="更新比例趋势",
+                xaxis_title="训练步数", yaxis_title="更新比例",
                 height=400, hovermode='x unified',
             )
             st.plotly_chart(fig_trend, use_container_width=True)
@@ -192,8 +196,8 @@ with tab2:
                     x=steps, y=grad_norms, mode='lines', name=lname,
                 ))
             fig_grad.update_layout(
-                title='各层梯度范数随训练步数变化',
-                xaxis_title='训练步数', yaxis_title='梯度范数',
+                title="梯度范数趋势",
+                xaxis_title="训练步数", yaxis_title="梯度范数",
                 height=400, yaxis_type='log', hovermode='x unified',
             )
             st.plotly_chart(fig_grad, use_container_width=True)
@@ -205,13 +209,13 @@ with tab2:
         fig.add_trace(go.Bar(
             x=layer_names,
             y=update_ratios,
-            name='更新比例',
+            name="更新比例",
             marker_color='lightblue'
         ))
         fig.update_layout(
-            title='各层参数更新比例',
+            title="各层更新比例",
             xaxis_title='层',
-            yaxis_title='更新比例',
+            yaxis_title="更新比例",
             height=400,
             xaxis_tickangle=-45
         )
@@ -225,11 +229,11 @@ with tab2:
             fig.add_trace(go.Bar(
                 x=layer_names,
                 y=sparsities,
-                name='激活稀疏性',
+                name="激活稀疏性",
                 marker_color='orange'
             ))
             fig.update_layout(
-                title='激活稀疏性',
+                title="激活稀疏性",
                 xaxis_title='层',
                 yaxis_title='稀疏性',
                 height=350,
@@ -242,11 +246,11 @@ with tab2:
             fig.add_trace(go.Bar(
                 x=layer_names,
                 y=dead_ratios,
-                name='死神经元比例',
+                name="死神经元比例",
                 marker_color='red'
             ))
             fig.update_layout(
-                title='死神经元比例',
+                title="死神经元比例",
                 xaxis_title='层',
                 yaxis_title='比例',
                 height=350,
@@ -301,7 +305,7 @@ with tab3:
             name='梯度范数分布'
         ))
         fig.update_layout(
-            title='近期梯度范数分布',
+            title="近期梯度范数分布",
             height=350
         )
         st.plotly_chart(fig, use_container_width=True)
@@ -313,7 +317,7 @@ with tab3:
             x=list(range(len(losses))),
             y=losses,
             mode='lines+markers',
-            name='近期损失',
+            name="近期 Loss",
             line=dict(color='red', width=2)
         ))
         fig2.add_hline(
@@ -321,8 +325,8 @@ with tab3:
             annotation_text=f"均值: {np.mean(losses):.4f}"
         )
         fig2.update_layout(
-            title='近期损失趋势',
-            xaxis_title='步数（近期）',
+            title="近期 Loss 趋势",
+            xaxis_title="近期步数",
             yaxis_title='Loss',
             height=350
         )
@@ -346,14 +350,14 @@ with tab4:
         with col1:
             st.metric("总步数", summary.get('total_steps', 0))
         with col2:
-            st.metric("平均损失", f"{summary.get('avg_loss', 0):.4f}")
+            st.metric("平均 Loss", f"{summary.get('avg_loss', 0):.4f}")
         with col3:
             trend = summary.get('loss_trend', 'unknown')
             trend_text = "下降" if trend == "decreasing" else "上升"
-            st.metric("损失趋势", trend_text)
+            st.metric("Loss 趋势", trend_text)
         with col4:
             stable = summary.get('training_stable', False)
-            st.metric("训练稳定性", "稳定" if stable else "不稳定")
+            st.metric("训练稳定性", "稳定" if stable else "异常")
     else:
         st.info("请先运行模拟训练以生成报告")
 

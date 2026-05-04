@@ -14,6 +14,9 @@ import plotly.express as px
 import pandas as pd
 import numpy as np
 
+
+
+
 st.set_page_config(page_title="Mamba 模型分析", page_icon="🐍", layout="wide")
 
 st.title("🐍 Mamba 模型分析工具")
@@ -21,6 +24,7 @@ st.markdown("### 深度剖析 Mamba/SSM 架构的性能优势")
 
 # 侧边栏配置
 with st.sidebar:
+    st.divider()
     st.header("⚙️ Mamba 配置")
     
     d_model = st.slider("模型维度 (d_model)", 128, 2048, 512, step=128)
@@ -98,7 +102,7 @@ with tab1:
         with col3:
             st.metric("内部维度", f"{d_model * expand}")
         with col4:
-            st.metric("卷积核", f"{d_conv}")
+            st.metric("卷积核大小", f"{d_conv}")
 
         st.divider()
 
@@ -136,14 +140,14 @@ with tab1:
         }
 
         df_params = pd.DataFrame(param_data)
-        df_params['占比 (%)'] = df_params['参数量'] / params['total_per_block'] * 100
+        df_params['占比 (%)'] = df_params["参数量"] / params['total_per_block'] * 100
 
         col1, col2 = st.columns([2, 1])
 
         with col1:
             # 参数分布饼图（只显示主要组件）
             main_components = df_params[~df_params['组件'].str.startswith('  ')].copy()
-            fig = px.pie(main_components, values='参数量', names='组件',
+            fig = px.pie(main_components, values="参数量", names='组件',
                          title='Mamba 块参数分布')
             st.plotly_chart(fig, use_container_width=True)
 
@@ -165,7 +169,7 @@ with tab1:
         st.subheader("📋 详细参数统计")
         st.dataframe(
             df_params.style.format({
-                '参数量': '{:,}',
+                "参数量": '{:,}',
                 '占比 (%)': '{:.2f}'
             }).background_gradient(subset=['占比 (%)'], cmap='Greens'),
             height=400
@@ -182,7 +186,7 @@ with tab1:
         with col1:
             st.metric("总 FLOPs", f"{flops['total_per_block']/1e9:.2f} GFLOPs")
         with col2:
-            st.metric("复杂度", flops['complexity'])
+            st.metric("计算复杂度", flops['complexity'])
         with col3:
             st.metric("SSM FLOPs", f"{flops['ssm_total']/1e9:.2f} GFLOPs")
 
@@ -268,7 +272,7 @@ with tab2:
                     comparison['mamba_flops'] / 1e9,
                     comparison['transformer_flops'] / 1e9
                 ],
-                '复杂度': ['O(LdN)', 'O(L²d)']
+                '计算复杂度': ['O(LdN)', 'O(L²d)']
             })
 
             col1, col2 = st.columns(2)
@@ -368,7 +372,7 @@ with tab3:
         seq_lengths = scaling_data['seq_lengths']
 
         df_scaling = pd.DataFrame({
-            '序列长度': seq_lengths,
+            "序列长度": seq_lengths,
             'Mamba FLOPs (GFLOPs)': [f/1e9 for f in scaling_data['mamba_flops']],
             'Transformer FLOPs (GFLOPs)': [f/1e9 for f in scaling_data['transformer_flops']],
             '加速比': scaling_data['speedup_ratio'],
@@ -396,7 +400,7 @@ with tab3:
         ))
         fig.update_layout(
             title='FLOPs vs 序列长度（对数坐标）',
-            xaxis_title='序列长度',
+            xaxis_title="序列长度",
             yaxis_title='FLOPs (GFLOPs)',
             yaxis_type='log',
             height=500,
@@ -420,10 +424,10 @@ with tab3:
             fillcolor='rgba(231, 76, 60, 0.2)'
         ))
         fig.add_hline(y=1, line_dash="dash", line_color="gray",
-                     annotation_text="持平线")
+                     annotation_text="等速线")
         fig.update_layout(
             title='Mamba 相对 Transformer 的加速比',
-            xaxis_title='序列长度',
+            xaxis_title="序列长度",
             yaxis_title='加速比 (倍数)',
             height=400
         )

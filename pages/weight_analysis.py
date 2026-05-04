@@ -15,6 +15,7 @@ import pandas as pd
 
 from utils.weight_analyzer import WeightAnalyzer
 
+
 st.set_page_config(page_title="权重分析", page_icon="🔍", layout="wide")
 
 st.title("🔍 模型权重分析")
@@ -22,6 +23,7 @@ st.markdown("### 深度分析模型权重分布、异常值检测、演化趋势
 
 # Sidebar configuration
 with st.sidebar:
+    st.divider()
     st.header("⚙️ 模型配置")
 
     d_model = st.slider("模型维度 (d_model)", 64, 1024, 256, step=64)
@@ -39,6 +41,8 @@ def create_model(_d_model, _n_layers):
     """Create a simple model for weight analysis"""
     try:
         from utils.base_models import BaseTransformer
+
+
         return BaseTransformer(d_model=_d_model, n_heads=4, n_layers=_n_layers, vocab_size=1000)
     except (ImportError, Exception):
         # Fallback: simple sequential model
@@ -108,7 +112,7 @@ with tab1:
             })
         st.dataframe(pd.DataFrame(stats_data), height=300)
     else:
-        st.info("未检测到可分析的权重层")
+        st.info("未找到可分析的权重")
 
 # =================== TAB 2: 异常检测 ===================
 with tab2:
@@ -152,7 +156,7 @@ with tab2:
         fig.add_hline(y=5, line_dash="dash", annotation_text="5% 阈值", line_color="gray")
 
         fig.update_layout(
-            title='各层异常值和死权重比例',
+            title="异常值与死权重分布",
             xaxis_title='层',
             yaxis_title='比例 (%)',
             barmode='group',
@@ -186,7 +190,7 @@ with tab3:
         layer_names = list(analyzer.weight_history.keys())
         if layer_names:
             selected_layer = st.selectbox(
-                "选择要查看的层",
+                "选择层",
                 options=layer_names,
                 format_func=lambda x: x
             )
@@ -244,7 +248,7 @@ with tab4:
                 hovertemplate='%{x} ↔ %{y}<br>相关系数: %{z:.3f}<extra></extra>'
             ))
             fig.update_layout(
-                title='层间权重相关性热力图',
+                title="层间权重相关性热力图",
                 xaxis_title='层',
                 yaxis_title='层',
                 height=500,
@@ -266,13 +270,13 @@ with tab4:
                         })
 
             df_pairs = pd.DataFrame(pairs)
-            df_pairs['相关系数'] = df_pairs['相关系数'].astype(float)
-            df_pairs = df_pairs.reindex(df_pairs['相关系数'].abs().sort_values(ascending=False).index)
+            df_pairs["相关系数"] = df_pairs["相关系数"].astype(float)
+            df_pairs = df_pairs.reindex(df_pairs["相关系数"].abs().sort_values(ascending=False).index)
             st.dataframe(df_pairs.head(10), height=300)
         else:
             st.info("需要至少 2 层才能计算相关性")
     else:
-        st.info("未检测到可分析的权重层")
+        st.info("未找到可分析的权重")
 
 # =================== TAB 5: 分析报告 ===================
 with tab5:

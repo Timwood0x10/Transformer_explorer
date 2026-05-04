@@ -27,6 +27,9 @@ import plotly.express as px
 
 from utils.attnres_tracker import AttnResTracker
 
+
+
+
 st.set_page_config(
     page_title="Kimi Attention Residuals",
     page_icon="🧠",
@@ -48,6 +51,7 @@ st.markdown("""
 # Sidebar Configuration
 # ============================================================
 with st.sidebar:
+    st.divider()
     st.header("⚙️ 模型配置")
 
     d_model = st.slider("嵌入维度 (d_model)", 64, 512, 256, step=64)
@@ -599,7 +603,7 @@ with tab3:
             fig4.add_trace(go.Bar(
                 x=df_scan["块大小"],
                 y=df_scan["范数稳定性提升 (%)"],
-                name='范数稳定性提升',
+                name="范数稳定性提升",
                 marker_color='#2ecc71',
                 text=[f"{v:.1f}%" for v in df_scan["范数稳定性提升 (%)"]],
                 textposition='auto',
@@ -681,7 +685,7 @@ with tab4:
         with col4:
             best = min(std_std, full_std, block_std)
             best_name = "标准残差" if best == std_std else ("Full AttnRes" if best == full_std else f"Block(B={block_size})")
-            st.metric("最优方案", best_name)
+            st.metric("最佳方案", best_name)
 
         st.divider()
 
