@@ -1,5 +1,5 @@
 """
-模型分析工具：分析 Transformer 模型结构、参数热点和性能瓶颈
+Model profiling tool: analyze Transformer model structure, parameter hotspots, and performance bottlenecks
 """
 import torch
 import torch.nn as nn
@@ -7,6 +7,8 @@ import numpy as np
 from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
 import time
+
+from utils.base_models import BaseTransformer
 
 
 @dataclass
@@ -159,16 +161,16 @@ class TransformerProfiler:
     
     def profile_layers(self, batch_size: int = 8, seq_len: int = 128, 
                       d_model: int = 512, n_heads: int = 8, 
-                      n_layers: int = 6) -> List[LayerProfile]:
-        """分析各层的计算量和参数量"""
+                      n_layers: int = 6, vocab_size: int = 50000) -> List[LayerProfile]:
+        """Analyze computation and parameter counts per layer."""
         
-        # 估算各组件的 FLOPs 和参数
-        flops_data = self.estimate_flops(batch_size, seq_len, d_model, n_heads, n_layers, 50000)
+        # Estimate FLOPs and parameters for each component
+        flops_data = self.estimate_flops(batch_size, seq_len, d_model, n_heads, n_layers, vocab_size)
         
         profiles = []
         
-        # 1. Embedding 层
-        embedding_params = d_model * 50000  # 假设词表大小 50k
+        # 1. Embedding layer
+        embedding_params = d_model * vocab_size
         embedding_flops = batch_size * seq_len * d_model
         profiles.append(LayerProfile(
             name="Embedding",
@@ -212,8 +214,8 @@ class TransformerProfiler:
             ))
         
         # 3. 输出层
-        output_params = d_model * 50000
-        output_flops = batch_size * seq_len * d_model * 50000
+        output_params = d_model * vocab_size
+        output_flops = batch_size * seq_len * d_model * vocab_size
         profiles.append(LayerProfile(
             name="Output_Projection",
             params=output_params,
@@ -322,50 +324,16 @@ class TransformerProfiler:
 
 def create_sample_transformer(d_model: int = 512, n_heads: int = 8, 
                              n_layers: int = 6, vocab_size: int = 50000) -> nn.Module:
-    """创建一个示例 Transformer 模型用于分析"""
-    
-    class SimpleTransformerLayer(nn.Module):
-        def __init__(self, d_model, n_heads):
-            super().__init__()
-            self.attention = nn.MultiheadAttention(d_model, n_heads, batch_first=True)
-            self.ffn = nn.Sequential(
-                nn.Linear(d_model, 4 * d_model),
-                nn.GELU(),
-                nn.Linear(4 * d_model, d_model)
-            )
-            self.norm1 = nn.LayerNorm(d_model)
-            self.norm2 = nn.LayerNorm(d_model)
-        
-        def forward(self, x):
-            # Self-attention
-            attn_out, _ = self.attention(x, x, x)
-            x = self.norm1(x + attn_out)
-            
-            # FFN
-            ffn_out = self.ffn(x)
-            x = self.norm2(x + ffn_out)
-            return x
-    
-    class SimpleTransformer(nn.Module):
-        def __init__(self, vocab_size, d_model, n_heads, n_layers):
-            super().__init__()
-            self.embedding = nn.Embedding(vocab_size, d_model)
-            self.layers = nn.ModuleList([
-                SimpleTransformerLayer(d_model, n_heads) for _ in range(n_layers)
-            ])
-            self.output = nn.Linear(d_model, vocab_size)
-        
-        def forward(self, x):
-            x = self.embedding(x)
-            for layer in self.layers:
-                x = layer(x)
-            return self.output(x)
-    
-    return SimpleTransformer(vocab_size, d_model, n_heads, n_layers)
+    """Create a sample Transformer model for analysis.
+
+    Uses the shared BaseTransformer from utils.base_models, which provides
+    the same output shape (B, S, vocab_size) and interface forward(input_ids) -> logits.
+    """
+    return BaseTransformer(d_model, n_heads, n_layers, vocab_size)
 
 
 if __name__ == "__main__":
-    # 测试代码
+    # Test code
     model = create_sample_transformer()
     profiler = TransformerProfiler(model, (8, 128, 512))
     

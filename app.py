@@ -6,6 +6,9 @@ import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 
+
+
+
 # ==========================================
 # 页面全局配置
 # ==========================================
@@ -50,6 +53,7 @@ st.markdown("**交互式学习工具** - 通过可视化、动画和实践深入
 # 侧边栏：参数控制台
 # ==========================================
 with st.sidebar:
+    st.divider()
     st.header("🎛️ 交互实验室")
 
     st.subheader("1. 输入设置")
@@ -124,7 +128,7 @@ with tab1:
     if video_category == "🏗️ Transformer 基础架构":
         video_choice = st.radio(
             "选择组件",
-            ["Encoder 编码器", "Decoder 掩码", "Cross Attention 交叉注意力", "残差连接与层归一化"],
+            ["Encoder 编码器", "Decoder 掩码", "Cross Attention 交叉注意力", "残差连接与归一化"],
             horizontal=True
         )
         
@@ -301,7 +305,7 @@ with tab1:
     elif video_category == "🏋️ 训练与优化":
         video_choice = st.radio(
             "选择主题",
-            ["训练损失", "AdamW 优化器", "混合精度训练"],
+            ["训练损失函数", "AdamW 优化器", "混合精度训练"],
             horizontal=True
         )
         
@@ -399,7 +403,7 @@ with tab1:
                 "Transformer (L²)": transformer_cost,
                 "Mamba (L)": mamba_cost
             })
-            
+
             fig = px.line(df, x="序列长度", y=["Transformer (L²)", "Mamba (L)"],
                          labels={"value": "计算复杂度", "variable": "模型"})
             st.plotly_chart(fig, use_container_width=True)
@@ -416,7 +420,7 @@ with tab2:
             "Attention 计算过程",
             "Softmax 温度调节",
             "位置编码可视化",
-            "多头注意力权重",
+            "多头权重分配",
             "FFN 维度变换"
         ]
     )
@@ -510,8 +514,8 @@ with tab2:
                 if i + 1 < pe_dim:
                     pe_matrix[pos, i+1] = np.cos(pos / (10000 ** (2 * i / pe_dim)))
         
-        fig = px.imshow(pe_matrix, 
-                       labels=dict(x="维度", y="位置", color="值"),
+        fig = px.imshow(pe_matrix,
+                       labels=dict(x="维度", y="位置", color="数值"),
                        color_continuous_scale="RdBu",
                        aspect="auto")
         fig.update_layout(height=500)
@@ -525,7 +529,7 @@ with tab2:
         - 形成独特的位置指纹
         """)
     
-    elif experiment == "多头注意力权重":
+    elif experiment == "多头权重分配":
         st.markdown("### 🎯 多头注意力权重分布")
         
         # 为每个头生成随机权重
@@ -612,9 +616,9 @@ with tab3:
         "选择分析类型",
         [
             "注意力模式分析",
-            "层级特征演化",
+            "层特征演化",
             "参数量对比",
-            "计算复杂度分析"
+            "复杂度分析"
         ]
     )
     
@@ -627,7 +631,7 @@ with tab3:
             "全局注意力": np.ones((seq_len, seq_len)) / seq_len,
             "因果注意力": np.tril(np.ones((seq_len, seq_len)))
         }
-        
+
         pattern_choice = st.radio("选择模式", list(patterns.keys()), horizontal=True)
         
         pattern = patterns[pattern_choice]
@@ -650,7 +654,7 @@ with tab3:
         else:
             st.markdown("- 只能看到当前及之前的位置\n- 防止信息泄露\n- 自回归生成必需")
     
-    elif analysis_type == "层级特征演化":
+    elif analysis_type == "层特征演化":
         st.markdown("### 🔄 特征在层间的演化")
         
         num_layers = st.slider("Transformer 层数", 1, 12, 6)
@@ -669,13 +673,13 @@ with tab3:
         
         with col1:
             fig = go.Figure()
-            fig.add_trace(go.Scatter(x=list(range(num_layers+1)), y=means, mode='lines+markers', name='均值'))
+            fig.add_trace(go.Scatter(x=list(range(num_layers+1)), y=means, mode='lines+markers', name="均值"))
             fig.update_layout(title="特征均值演化", xaxis_title="层数", yaxis_title="均值", height=300)
             st.plotly_chart(fig, use_container_width=True)
         
         with col2:
             fig = go.Figure()
-            fig.add_trace(go.Scatter(x=list(range(num_layers+1)), y=stds, mode='lines+markers', name='标准差', line=dict(color='red')))
+            fig.add_trace(go.Scatter(x=list(range(num_layers+1)), y=stds, mode='lines+markers', name="标准差", line=dict(color='red')))
             fig.update_layout(title="特征方差演化", xaxis_title="层数", yaxis_title="标准差", height=300)
             st.plotly_chart(fig, use_container_width=True)
     
@@ -699,7 +703,7 @@ with tab3:
         
         df = pd.DataFrame(params_list)
         
-        fig = px.bar(df, x="模型", y="参数量 (M)", 
+        fig = px.bar(df, x="模型", y="参数量 (M)",
                     color="层数",
                     hover_data=["维度"],
                     title="模型参数量对比")
@@ -708,7 +712,7 @@ with tab3:
         
         st.dataframe(df.style.format({"参数量 (M)": "{:.1f}"}))
     
-    elif analysis_type == "计算复杂度分析":
+    elif analysis_type == "复杂度分析":
         st.markdown("### ⚡ Transformer vs Mamba 复杂度对比")
         
         seq_lengths = np.arange(128, 4096, 128)
@@ -755,7 +759,7 @@ with tab4:
         [
             "学习率调度",
             "优化器对比",
-            "混合精度效果",
+            "混合精度训练",
             "损失函数分析"
         ]
     )
@@ -770,7 +774,7 @@ with tab4:
         )
         
         warmup_steps = st.slider("Warmup 步数", 0, 1000, 100)
-        total_steps = st.slider("总训练步数", 1000, 10000, 5000)
+        total_steps = st.slider("总步数", 1000, 10000, 5000)
         max_lr = learning_rate
         
         steps = np.arange(total_steps)
@@ -843,11 +847,11 @@ with tab4:
         )
         st.plotly_chart(fig, use_container_width=True)
     
-    elif training_topic == "混合精度效果":
+    elif training_topic == "混合精度训练":
         st.markdown("### 🎯 混合精度训练效果")
         
         precision_type = st.radio(
-            "选择精度",
+            "选择精度类型",
             ["FP32 (全精度)", "FP16 (半精度)", "BF16 (Brain Float)"],
             horizontal=True
         )
@@ -887,7 +891,7 @@ with tab4:
             "显存占用 (GB)": [fp32_mem, fp16_mem, bf16_mem]
         })
         
-        fig = px.bar(mem_data, x="精度", y="显存占用 (GB)", 
+        fig = px.bar(mem_data, x="精度", y="显存占用 (GB)",
                     title=f"1B 参数模型显存占用对比",
                     color="精度")
         fig.update_layout(height=300)
@@ -906,11 +910,11 @@ with tab4:
         val_loss[70:] = val_loss[70] + (epochs[70:] - 70) * 0.003
         
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=epochs, y=train_loss, mode='lines', name='训练损失', line=dict(color='blue')))
-        fig.add_trace(go.Scatter(x=epochs, y=val_loss, mode='lines', name='验证损失', line=dict(color='red')))
-        fig.add_vline(x=70, line_dash="dash", line_color="green", annotation_text="开始过拟合")
+        fig.add_trace(go.Scatter(x=epochs, y=train_loss, mode='lines', name="训练损失", line=dict(color='blue')))
+        fig.add_trace(go.Scatter(x=epochs, y=val_loss, mode='lines', name="验证损失", line=dict(color='red')))
+        fig.add_vline(x=70, line_dash="dash", line_color="green", annotation_text="过拟合开始")
         fig.update_layout(
-            title="训练过程损失曲线",
+            title="训练损失曲线",
             xaxis_title="Epoch",
             yaxis_title="Loss",
             height=400
